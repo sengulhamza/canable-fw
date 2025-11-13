@@ -2,8 +2,8 @@
 // CANable firmware
 //
 
-#include "stm32f0xx.h"
-#include "stm32f0xx_hal.h"
+#include "stm32h7xx.h"
+#include "stm32h7xx_hal.h"
 
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
@@ -25,7 +25,7 @@ int main(void)
     led_blue_blink(2);
 
     // Storage for status and received message buffer
-    CAN_RxHeaderTypeDef rx_msg_header;
+    FDCAN_RxHeaderTypeDef rx_msg_header;
     uint8_t rx_msg_data[8] = {0};
     uint8_t msg_buf[SLCAN_MTU];
 
@@ -37,7 +37,7 @@ int main(void)
         can_process();
 
         // If CAN message receive is pending, process the message
-        if(is_can_msg_pending(CAN_RX_FIFO0))
+        if(is_can_msg_pending(FDCAN_RX_FIFO0))
         {
 			// If message received from bus, parse the frame
 			if (can_rx(&rx_msg_header, rx_msg_data) == HAL_OK)
