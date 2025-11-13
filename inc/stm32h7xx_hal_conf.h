@@ -26,6 +26,18 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 
+/* ########################## UNALIGNED Access Macros ####################### */
+/**
+  * @brief  Macros for unaligned 32-bit access (Cortex-M7 supports unaligned access)
+  */
+#ifndef __UNALIGNED_UINT32_READ
+#define __UNALIGNED_UINT32_READ(addr)       (*(__packed uint32_t *)(addr))
+#endif
+
+#ifndef __UNALIGNED_UINT32_WRITE
+#define __UNALIGNED_UINT32_WRITE(addr, val) (*(__packed uint32_t *)(addr) = (val))
+#endif
+
 /* ########################## Module Selection ############################## */
 /**
   * @brief This is the list of modules to be used in the HAL driver
