@@ -66,6 +66,13 @@
 #endif /* HSI_VALUE */
 
 /**
+  * @brief Internal  Low-power Low Speed oscillator (CSI) value.
+  */
+#if !defined  (CSI_VALUE)
+#define CSI_VALUE    ((uint32_t)4000000) /*!< Value of the Internal oscillator in Hz*/
+#endif /* CSI_VALUE */
+
+/**
   * @brief Internal Low Speed oscillator (LSI) value.
   */
 #if !defined  (LSI_VALUE)

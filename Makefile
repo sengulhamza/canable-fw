@@ -26,7 +26,7 @@ BUILD_DIR = build
 LD_SCRIPT = STM32H723VET6_FLASH.ld
 
 # USER_DEFS user defined macros
-USER_DEFS = -D HSE_VALUE=25000000 -D HSI_VALUE=64000000
+USER_DEFS = -D USE_HAL_DRIVER -D HSE_VALUE=25000000 -D HSI_VALUE=64000000
 
 # USER_INCLUDES: user defined includes
 USER_INCLUDES =
@@ -110,8 +110,8 @@ flash: all
 
 CUBELIB = $(CUBELIB_BUILD_DIR)/libstm32cube.a
 
-# List of stm32 driver objects
-CUBELIB_DRIVER_OBJS = $(addprefix $(CUBELIB_BUILD_DIR)/, $(patsubst %.c, %.o, $(notdir $(wildcard $(DRIVER_PATH)/Src/*.c))))
+# List of stm32 driver objects (exclude template files)
+CUBELIB_DRIVER_OBJS = $(addprefix $(CUBELIB_BUILD_DIR)/, $(patsubst %.c, %.o, $(notdir $(filter-out %_template.c,$(wildcard $(DRIVER_PATH)/Src/*.c)))))
 
 # shortcut for building core library (make cubelib)
 cubelib: $(CUBELIB)
