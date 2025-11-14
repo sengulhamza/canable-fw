@@ -1,7 +1,9 @@
 #ifndef _SLCAN_H
 #define _SLCAN_H
 
-int8_t slcan_parse_frame(uint8_t *buf, CAN_RxHeaderTypeDef *frame_header, uint8_t* frame_data);
+#include "stm32h7xx_hal_fdcan.h"
+
+int8_t slcan_parse_frame(uint8_t *buf, FDCAN_RxHeaderTypeDef *frame_header, uint8_t* frame_data);
 int8_t slcan_parse_str(uint8_t *buf, uint8_t len);
 
 // maximum rx buffer len: extended CAN frame with timestamp 

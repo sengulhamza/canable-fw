@@ -1,4 +1,4 @@
-# STM32F0xx Makefile
+# STM32H7xx Makefile
 # #####################################
 #
 # Part of the uCtools project
@@ -10,7 +10,7 @@
 
 
 # SOURCES: list of sources in the user application
-SOURCES = main.c system.c usbd_conf.c usbd_cdc_if.c usb_device.c usbd_desc.c interrupts.c system_stm32f0xx.c can.c slcan.c led.c error.c printf.c
+SOURCES = main.c system.c usbd_conf.c usbd_cdc_if.c usb_device.c usbd_desc.c interrupts.c system_stm32h7xx.c can.c slcan.c led.c error.c printf.c
 
 # Get git version and dirty flag
 GIT_VERSION := $(shell git describe --abbrev=7 --dirty --always --tags)
@@ -23,10 +23,10 @@ TARGET = canable-$(GIT_VERSION)
 BUILD_DIR = build
 
 # LD_SCRIPT: location of the linker script
-LD_SCRIPT = STM32F042C6_FLASH.ld
+LD_SCRIPT = STM32H723VET6_FLASH.ld
 
 # USER_DEFS user defined macros
-USER_DEFS = -D HSI48_VALUE=48000000 -D HSE_VALUE=16000000
+USER_DEFS = -D USE_HAL_DRIVER -D HSE_VALUE=8000000 -D HSI_VALUE=64000000
 
 # USER_INCLUDES: user defined includes
 USER_INCLUDES =
@@ -36,7 +36,7 @@ USB_INCLUDES = -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc
 USB_INCLUDES += -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 
 # USER_CFLAGS: user C flags (enable warnings, enable debug info)
-USER_CFLAGS = -Wall -g -ffunction-sections -fdata-sections -Os
+USER_CFLAGS = -Wall -g -ffunction-sections -fdata-sections -Os -mfpu=fpv5-d16 -mfloat-abi=hard
 
 ifneq ($(EXTERNAL_OSCILLATOR), 1)
 USER_CFLAGS += -DINTERNAL_OSCILLATOR
@@ -46,7 +46,7 @@ endif
 USER_LDFLAGS = -fno-exceptions -ffunction-sections -fdata-sections -Wl,--gc-sections
 
 # TARGET_DEVICE: device to compile for
-TARGET_DEVICE = STM32F042x6
+TARGET_DEVICE = STM32H723xx
 
 #######################################
 # end of user configuration
@@ -63,19 +63,19 @@ OBJCOPY = arm-none-eabi-objcopy
 MKDIR = mkdir -p
 #######################################
 
-# core and CPU type for Cortex M0
-# ARM core type (CORE_M0, CORE_M3)
-CORE = CORE_M0
-# ARM CPU type (cortex-m0, cortex-m3)
-CPU = cortex-m0
+# core and CPU type for Cortex M7
+# ARM core type (CORE_M7)
+CORE = CORE_M7
+# ARM CPU type (cortex-m7)
+CPU = cortex-m7
 
 # where to build STM32Cube
 CUBELIB_BUILD_DIR = $(BUILD_DIR)/STM32Cube
 
 # various paths within the STmicro library
 CMSIS_PATH = Drivers/CMSIS
-CMSIS_DEVICE_PATH = $(CMSIS_PATH)/Device/ST/STM32F0xx
-DRIVER_PATH = Drivers/STM32F0xx_HAL_Driver
+CMSIS_DEVICE_PATH = $(CMSIS_PATH)/Device/ST/STM32H7xx
+DRIVER_PATH = Drivers/STM32H7xx_HAL_Driver
 
 # includes for gcc
 INCLUDES = -I$(CMSIS_PATH)/Include
@@ -110,8 +110,8 @@ flash: all
 
 CUBELIB = $(CUBELIB_BUILD_DIR)/libstm32cube.a
 
-# List of stm32 driver objects
-CUBELIB_DRIVER_OBJS = $(addprefix $(CUBELIB_BUILD_DIR)/, $(patsubst %.c, %.o, $(notdir $(wildcard $(DRIVER_PATH)/Src/*.c))))
+# List of stm32 driver objects (exclude template files)
+CUBELIB_DRIVER_OBJS = $(addprefix $(CUBELIB_BUILD_DIR)/, $(patsubst %.c, %.o, $(notdir $(filter-out %_template.c,$(wildcard $(DRIVER_PATH)/Src/*.c)))))
 
 # shortcut for building core library (make cubelib)
 cubelib: $(CUBELIB)
@@ -154,7 +154,7 @@ $(USB_BUILD_DIR):
 # list of user program objects
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(SOURCES:.c=.o)))
 # add an object for the startup code
-OBJECTS += $(BUILD_DIR)/startup_stm32f042x6.o
+OBJECTS += $(BUILD_DIR)/startup_stm32h723xx.o
 
 # use the periphlib core library, plus generic ones (libc, libm, libnosys)
 LIBS = -lstm32cube -lc -lm -lnosys

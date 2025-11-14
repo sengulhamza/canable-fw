@@ -2,7 +2,7 @@
 // slcan: Parse incoming and generate outgoing slcan messages
 //
 
-#include "stm32f0xx_hal.h"
+#include "stm32h7xx_hal.h"
 #include <string.h>
 #include "can.h"
 #include "error.h"
@@ -11,8 +11,8 @@
 #include "usbd_cdc_if.h"
 
 
-// Parse an incoming CAN frame into an outgoing slcan message
-int8_t slcan_parse_frame(uint8_t *buf, CAN_RxHeaderTypeDef *frame_header, uint8_t* frame_data)
+// Parse an incoming FDCAN frame into an outgoing slcan message
+int8_t slcan_parse_frame(uint8_t *buf, FDCAN_RxHeaderTypeDef *frame_header, uint8_t* frame_data)
 {
     uint8_t msg_position = 0;
 
@@ -22,24 +22,24 @@ int8_t slcan_parse_frame(uint8_t *buf, CAN_RxHeaderTypeDef *frame_header, uint8_
     }
 
     // Add character for frame type
-    if (frame_header->RTR == CAN_RTR_DATA)
+    if (frame_header->RxFrameType == FDCAN_DATA_FRAME)
     {
         buf[msg_position] = 't';
-    } else if (frame_header->RTR == CAN_RTR_REMOTE) {
+    } else if (frame_header->RxFrameType == FDCAN_REMOTE_FRAME) {
         buf[msg_position] = 'r';
     }
 
     // Assume standard identifier
     uint8_t id_len = SLCAN_STD_ID_LEN;
-    uint32_t can_id = frame_header->StdId;
+    uint32_t can_id = frame_header->Identifier;
 
     // Check if extended
-    if (frame_header->IDE == CAN_ID_EXT)
+    if (frame_header->IdType == FDCAN_EXTENDED_ID)
     {
         // Convert first char to upper case for extended frame
         buf[msg_position] -= 32;
         id_len = SLCAN_EXT_ID_LEN;
-        can_id = frame_header->ExtId;
+        can_id = frame_header->Identifier;
     }
     msg_position++;
 
@@ -52,11 +52,12 @@ int8_t slcan_parse_frame(uint8_t *buf, CAN_RxHeaderTypeDef *frame_header, uint8_
         msg_position++;
     }
 
-    // Add DLC to buffer
-    buf[msg_position++] = frame_header->DLC;
+    // Add DLC to buffer (extract DLC from DataLength)
+    uint8_t dlc = (frame_header->DataLength >> 16) & 0x0F;
+    buf[msg_position++] = dlc;
 
     // Add data bytes
-    for (uint8_t j = 0; j < frame_header->DLC; j++)
+    for (uint8_t j = 0; j < dlc; j++)
     {
         buf[msg_position++] = (frame_data[j] >> 4);
         buf[msg_position++] = (frame_data[j] & 0x0F);
@@ -83,12 +84,17 @@ int8_t slcan_parse_frame(uint8_t *buf, CAN_RxHeaderTypeDef *frame_header, uint8_
 // Parse an incoming slcan command from the USB CDC port
 int8_t slcan_parse_str(uint8_t *buf, uint8_t len)
 {
-	CAN_TxHeaderTypeDef frame_header;
+	FDCAN_TxHeaderTypeDef frame_header;
 
 	// Default to standard ID unless otherwise specified
-	frame_header.IDE = CAN_ID_STD;
-    frame_header.StdId = 0;
-    frame_header.ExtId = 0;
+	frame_header.IdType = FDCAN_STANDARD_ID;
+    frame_header.Identifier = 0;
+    frame_header.TxFrameType = FDCAN_DATA_FRAME;
+    frame_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    frame_header.BitRateSwitch = FDCAN_BRS_OFF;
+    frame_header.FDFormat = FDCAN_CLASSIC_CAN;
+    frame_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    frame_header.MessageMarker = 0;
 
 
     // Convert from ASCII (2nd character to end)
@@ -176,17 +182,17 @@ int8_t slcan_parse_str(uint8_t *buf, uint8_t len)
 		}
 
 		case 'T':
-	    	frame_header.IDE = CAN_ID_EXT;
+	    	frame_header.IdType = FDCAN_EXTENDED_ID;
 		case 't':
 			// Transmit data frame command
-			frame_header.RTR = CAN_RTR_DATA;
+			frame_header.TxFrameType = FDCAN_DATA_FRAME;
 			break;
 
 		case 'R':
-	    	frame_header.IDE = CAN_ID_EXT;
+	    	frame_header.IdType = FDCAN_EXTENDED_ID;
 		case 'r':
 			// Transmit remote frame command
-			frame_header.RTR = CAN_RTR_REMOTE;
+			frame_header.TxFrameType = FDCAN_REMOTE_FRAME;
 			break;
 
     	default:
@@ -197,29 +203,32 @@ int8_t slcan_parse_str(uint8_t *buf, uint8_t len)
 
     // Save CAN ID depending on ID type
     uint8_t msg_position = 1;
-    if (frame_header.IDE == CAN_ID_EXT) {
+    if (frame_header.IdType == FDCAN_EXTENDED_ID) {
         while (msg_position <= SLCAN_EXT_ID_LEN) {
-        	frame_header.ExtId *= 16;
-        	frame_header.ExtId += buf[msg_position++];
+        	frame_header.Identifier *= 16;
+        	frame_header.Identifier += buf[msg_position++];
         }
     }
     else {
         while (msg_position <= SLCAN_STD_ID_LEN) {
-        	frame_header.StdId *= 16;
-        	frame_header.StdId += buf[msg_position++];
+        	frame_header.Identifier *= 16;
+        	frame_header.Identifier += buf[msg_position++];
         }
     }
 
 
     // Attempt to parse DLC and check sanity
-    frame_header.DLC = buf[msg_position++];
-    if (frame_header.DLC > 8) {
+    uint8_t dlc = buf[msg_position++];
+    if (dlc > 8) {
         return -1;
     }
+    
+    // Convert DLC to FDCAN DataLength format
+    frame_header.DataLength = dlc << 16;
 
     // Copy frame data to buffer
     uint8_t frame_data[8] = {0};
-    for (uint8_t j = 0; j < frame_header.DLC; j++) {
+    for (uint8_t j = 0; j < dlc; j++) {
         frame_data[j] = (buf[msg_position] << 4) + buf[msg_position+1];
         msg_position += 2;
     }
