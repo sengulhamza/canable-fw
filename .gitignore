@@ -1,2 +1,10 @@
 build/*
 /Default/
+/Debug/
+/Release/
+
+# STM32CubeIDE generated files (keep project files, ignore build artifacts)
+.settings/.metadata
+*.launch
+.project~
+.cproject~
