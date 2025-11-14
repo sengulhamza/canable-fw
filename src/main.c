@@ -22,7 +22,7 @@ int main(void)
     led_init();
     
     // Enable CAN at startup for testing (normally done via SLCAN 'O' command)
-    can_set_bitrate(CAN_BITRATE_500K);  // Set default bitrate
+    // Default bitrate is 500kbps (set in can_init)
     can_enable();  // Start CAN peripheral
     
     usb_init();

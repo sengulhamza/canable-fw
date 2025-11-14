@@ -60,8 +60,8 @@ void can_init(void)
     filter.FilterID2 = 0x0000;
 
 
-    // default to 125 kbit/s
-    prescaler = 20;
+    // default to 500 kbit/s
+    prescaler = 5;  // 50MHz / 5 / 20 = 500kbps
     hfdcan1.Instance = FDCAN1;
     bus_state = OFF_BUS;
 
@@ -84,11 +84,12 @@ void can_enable(void)
     	hfdcan1.Init.TransmitPause = DISABLE;
     	hfdcan1.Init.ProtocolException = DISABLE;
     	
-    	// Nominal bit timing for classic CAN
+    	// Nominal bit timing for classic CAN (20 TQ: 1 Sync + 13 Seg1 + 6 Seg2)
+    	// Sample point at 70% (14/20)
     	hfdcan1.Init.NominalPrescaler = prescaler;
     	hfdcan1.Init.NominalSyncJumpWidth = 1;
     	hfdcan1.Init.NominalTimeSeg1 = 13;
-    	hfdcan1.Init.NominalTimeSeg2 = 2;
+    	hfdcan1.Init.NominalTimeSeg2 = 6;
     	
     	// Message RAM configuration
     	hfdcan1.Init.MessageRAMOffset = 0;
@@ -133,7 +134,7 @@ void can_disable(void)
 
 
 // Set the bitrate of the FDCAN peripheral
-// FDCAN clock is 40 MHz (from PLL), bit time = 16 TQ (1+13+2)
+// FDCAN clock is 50 MHz (from PLL1Q), bit time = 20 TQ (1+13+6)
 void can_set_bitrate(enum can_bitrate bitrate)
 {
     if (bus_state == ON_BUS)
@@ -145,35 +146,35 @@ void can_set_bitrate(enum can_bitrate bitrate)
     switch (bitrate)
     {
         case CAN_BITRATE_10K:
-        	prescaler = 250;  // 40MHz / 250 / 16 = 10kbps
+        	prescaler = 250;  // 50MHz / 250 / 20 = 10kbps
             break;
         case CAN_BITRATE_20K:
-        	prescaler = 125;  // 40MHz / 125 / 16 = 20kbps
+        	prescaler = 125;  // 50MHz / 125 / 20 = 20kbps
             break;
         case CAN_BITRATE_50K:
-        	prescaler = 50;   // 40MHz / 50 / 16 = 50kbps
+        	prescaler = 50;   // 50MHz / 50 / 20 = 50kbps
             break;
         case CAN_BITRATE_100K:
-            prescaler = 25;   // 40MHz / 25 / 16 = 100kbps
+            prescaler = 25;   // 50MHz / 25 / 20 = 100kbps
             break;
         case CAN_BITRATE_125K:
-            prescaler = 20;   // 40MHz / 20 / 16 = 125kbps
+            prescaler = 20;   // 50MHz / 20 / 20 = 125kbps
             break;
         case CAN_BITRATE_250K:
-            prescaler = 10;   // 40MHz / 10 / 16 = 250kbps
+            prescaler = 10;   // 50MHz / 10 / 20 = 250kbps
             break;
         case CAN_BITRATE_500K:
-            prescaler = 5;    // 40MHz / 5 / 16 = 500kbps
+            prescaler = 5;    // 50MHz / 5 / 20 = 500kbps
             break;
         case CAN_BITRATE_750K:
-            prescaler = 4;    // 40MHz / 4 / 16 = 625kbps (closest to 750kbps)
+            prescaler = 4;    // 50MHz / 4 / 20 = 625kbps (closest to 750kbps)
             break;
         case CAN_BITRATE_1000K:
-            prescaler = 3;    // 40MHz / 3 / 16 = 833kbps (closest to 1000kbps)
+            prescaler = 2;    // 50MHz / 2 / 20 = 1250kbps (use prescaler 3 for ~833kbps if too high)
             break;
         case CAN_BITRATE_INVALID:
         default:
-            prescaler = 3;
+            prescaler = 5;    // default to 500kbps
             break;
     }
 
