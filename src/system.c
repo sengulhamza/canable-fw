@@ -28,19 +28,18 @@ void system_init(void)
 
     while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
-    // Configure HSI64 and PLL1
-    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSI;
-    RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
-    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+    // Configure HSE (8MHz external oscillator) and PLL1
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48 | RCC_OSCILLATORTYPE_HSE;
+    RCC_OscInitStruct.HSEState = RCC_HSE_ON;
     RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-    RCC_OscInitStruct.PLL.PLLM = 8;     // HSI = 64MHz, 64/8 = 8 MHz
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+    RCC_OscInitStruct.PLL.PLLM = 1;     // HSE = 8MHz, 8/1 = 8 MHz
     RCC_OscInitStruct.PLL.PLLN = 100;   // 8MHz * 100 = 800 MHz VCO
     RCC_OscInitStruct.PLL.PLLP = 2;     // 800/2 = 400 MHz (SYSCLK)
-    RCC_OscInitStruct.PLL.PLLQ = 16;    // 800/16 = 50 MHz
+    RCC_OscInitStruct.PLL.PLLQ = 16;    // 800/16 = 50 MHz (for FDCAN)
     RCC_OscInitStruct.PLL.PLLR = 2;     // 800/2 = 400 MHz
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_2;
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;  // 8MHz input range
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
     RCC_OscInitStruct.PLL.PLLFRACN = 0;
     
@@ -77,8 +76,10 @@ void system_init(void)
 
     // Enable GPIO clocks
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();  // For HSE oscillator pins
 }
 
 

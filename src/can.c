@@ -26,6 +26,7 @@ void can_init(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     __HAL_RCC_FDCAN_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
 
     //PD0     ------> FDCAN1_RX
     //PD1     ------> FDCAN1_TX
@@ -35,6 +36,19 @@ void can_init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+    // Initialize CAN transceiver control pins
+    //PC9     ------> CAN_NSTB (active low, give LOW to enable)
+    //PC6     ------> CAN_DTR_EN
+    GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_6;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    
+    // Enable CAN transceiver (NSTB is active low)
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);  // NSTB = LOW (enabled)
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);    // DTR_EN = HIGH
 
 
     // Initialize default FDCAN filter configuration
