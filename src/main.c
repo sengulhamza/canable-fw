@@ -20,7 +20,15 @@ int main(void)
     system_init();
     can_init();
     led_init();
+    
+    // Enable CAN at startup for testing (normally done via SLCAN 'O' command)
+    can_set_bitrate(CAN_BITRATE_500K);  // Set default bitrate
+    can_enable();  // Start CAN peripheral
+    
     usb_init();
+    
+    // Delay to allow USB to stabilize
+    HAL_Delay(100);
 
     led_blue_blink(2);
     
