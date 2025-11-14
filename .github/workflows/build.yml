@@ -1,0 +1,58 @@
+name: Build Firmware
+
+on:
+  push:
+    branches: [ main, master, copilot/port-cunable-firmware ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for git describe to work
+    
+    - name: Install ARM GCC toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+    
+    - name: Verify ARM GCC installation
+      run: |
+        arm-none-eabi-gcc --version
+        arm-none-eabi-objcopy --version
+    
+    - name: Build firmware
+      run: |
+        make clean
+        make -j$(nproc)
+    
+    - name: List build artifacts
+      run: |
+        ls -lh build/
+    
+    - name: Upload firmware binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: canable-firmware-stm32h723
+        path: |
+          build/*.bin
+          build/*.hex
+          build/*.elf
+        retention-days: 90
+    
+    - name: Create release on tag
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/*.bin
+          build/*.hex
+          build/*.elf
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
